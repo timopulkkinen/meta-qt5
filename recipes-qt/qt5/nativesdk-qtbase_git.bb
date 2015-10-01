@@ -3,11 +3,11 @@ DEPENDS = "nativesdk-zlib nativesdk-dbus qtbase-native"
 SECTION = "libs"
 HOMEPAGE = "http://qt-project.org"
 
-LICENSE = "GFDL-1.3 & BSD & (LGPL-2.1 & Digia-Qt-LGPL-Exception-1.1 | LGPL-3.0)"
+LICENSE = "GFDL-1.3 & BSD & (LGPL-2.1 & The-Qt-Company-Qt-LGPL-Exception-1.1 | LGPL-3.0)"
 LIC_FILES_CHKSUM = " \
-    file://LICENSE.LGPLv21;md5=d87ae0d200af76dca730d911474cbe5b \
-    file://LICENSE.LGPLv3;md5=ffcfac38a32c9ebdb8ff768fa1702478 \
-    file://LGPL_EXCEPTION.txt;md5=0145c4d1b6f96a661c2c139dfb268fb6 \
+    file://LICENSE.LGPLv21;md5=58a180e1cf84c756c29f782b3a485c29 \
+    file://LICENSE.LGPLv3;md5=c4fe8c6de4eef597feec6e90ed62e962 \
+    file://LGPL_EXCEPTION.txt;md5=9625233da42f9e0ce9d63651a9d97654 \
     file://LICENSE.FDL;md5=6d9f2a9af4c8b8c3c769f6cc1b6aaf7e \
 "
 
@@ -25,23 +25,21 @@ SRC_URI += "\
     file://0002-qlibraryinfo-allow-to-set-qt.conf-from-the-outside-u.patch \
     file://0003-Add-external-hostbindir-option.patch \
     file://0004-qt_module-Fix-pkgconfig-and-libtool-replacements.patch \
-    file://0005-Revert-eglfs-Print-the-chosen-config-in-debug-mode.patch \
-    file://0006-qeglplatformintegration-Undefine-CursorShape-from-X..patch \
-    file://0007-configure-bump-path-length-from-256-to-512-character.patch \
-    file://0008-eglfs-fix-egl-error-for-platforms-only-supporting-on.patch \
-    file://0009-QOpenGLPaintDevice-sub-area-support.patch \
-    file://0010-Make-Qt5GuiConfigExtras.cmake-find-gl-es-include-dir.patch \
+    file://0005-qeglplatformintegration-Undefine-CursorShape-from-X..patch \
+    file://0006-configure-bump-path-length-from-256-to-512-character.patch \
+    file://0007-QOpenGLPaintDevice-sub-area-support.patch \
+    file://0008-Fix-build-with-clang-3.7.patch \
 "
 
 # common for qtbase-native and nativesdk-qtbase
 SRC_URI += " \
-    file://0011-Always-build-uic.patch \
-    file://0012-Add-external-hostbindir-option-for-native-sdk.patch \
+    file://0009-Always-build-uic.patch \
+    file://0010-Add-external-hostbindir-option-for-native-sdk.patch \
 "
 
 # specific for nativesdk-qtbase
 SRC_URI += " \
-    file://0013-configure-preserve-built-qmake-and-swap-with-native-.patch \
+    file://0011-configure-preserve-built-qmake-and-swap-with-native-.patch \
 "
 
 # CMake's toolchain configuration of nativesdk-qtbase
@@ -91,7 +89,7 @@ QT_CONFIG_FLAGS += " \
 "
 
 # qtbase is exception, as these are used as install path for sysroots
-OE_QMAKE_PATH_HOST_DATA = "${libdir}/${QT_DIR_NAME}"
+OE_QMAKE_PATH_HOST_DATA = "${libdir}${QT_DIR_NAME}"
 OE_QMAKE_PATH_HOST_LIBS = "${libdir}"
 
 do_generate_qt_config_file() {
@@ -145,7 +143,7 @@ export OE_QMAKE_AR
 export OE_QMAKE_STRIP
 
 # another exception is that we need to run bin/qmake, because EffectivePaths are relative to qmake location
-OE_QMAKE_QMAKE_ORIG = "${STAGING_BINDIR_NATIVE}/${QT_DIR_NAME}/qmake"
+OE_QMAKE_QMAKE_ORIG = "${STAGING_BINDIR_NATIVE}${QT_DIR_NAME}/qmake"
 OE_QMAKE_QMAKE = "bin/qmake"
 
 do_configure() {
@@ -250,7 +248,7 @@ do_install() {
     install -m 644 ${WORKDIR}/OEQt5Toolchain.cmake ${D}${datadir}/cmake/OEToolchainConfig.cmake.d/
 }
 
-do_generate_qt_environment_file() {
+fakeroot do_generate_qt_environment_file() {
     mkdir -p ${D}${SDKPATHNATIVE}/environment-setup.d/
     script=${D}${SDKPATHNATIVE}/environment-setup.d/qt5.sh
 
@@ -270,9 +268,9 @@ do_generate_qt_environment_file() {
     echo 'export OE_QMAKE_RCC=${OE_QMAKE_PATH_HOST_BINS}/rcc' >> $script
     echo 'export OE_QMAKE_QDBUSCPP2XML=${OE_QMAKE_PATH_HOST_BINS}/qdbuscpp2xml' >> $script
     echo 'export OE_QMAKE_QDBUSXML2CPP=${OE_QMAKE_PATH_HOST_BINS}/qdbusxml2cpp' >> $script
-    echo 'export OE_QMAKE_QT_CONFIG=`qmake -query QT_INSTALL_LIBS`/${QT_DIR_NAME}/mkspecs/qconfig.pri' >> $script
+    echo 'export OE_QMAKE_QT_CONFIG=`qmake -query QT_INSTALL_LIBS`${QT_DIR_NAME}/mkspecs/qconfig.pri' >> $script
     echo 'export OE_QMAKE_PATH_HOST_BINS=${OE_QMAKE_PATH_HOST_BINS}' >> $script
-    echo 'export QMAKESPEC=`qmake -query QT_INSTALL_LIBS`/${QT_DIR_NAME}/mkspecs/linux-oe-g++' >> $script
+    echo 'export QMAKESPEC=`qmake -query QT_INSTALL_LIBS`${QT_DIR_NAME}/mkspecs/linux-oe-g++' >> $script
 
     # Use relocable sysroot
     sed -i -e 's:${SDKPATHNATIVE}:$OECORE_NATIVE_SYSROOT:g' $script
@@ -280,4 +278,4 @@ do_generate_qt_environment_file() {
 
 addtask generate_qt_environment_file after do_install before do_package
 
-SRCREV = "2cb17c1fb903434274e58692c9f0df619affdab0"
+SRCREV = "2fde9f59eeab68ede92324e7613daf8be3eaf498"

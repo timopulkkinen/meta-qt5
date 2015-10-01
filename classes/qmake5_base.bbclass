@@ -1,11 +1,3 @@
-# This is useful for target recipes to reference native mkspecs
-QMAKE_MKSPEC_PATH_NATIVE = "${STAGING_LIBDIR_NATIVE}/${QT_DIR_NAME}"
-QMAKE_MKSPEC_PATH_TARGET = "${STAGING_LIBDIR}/${QT_DIR_NAME}"
-
-QMAKE_MKSPEC_PATH = "${QMAKE_MKSPEC_PATH_TARGET}"
-QMAKE_MKSPEC_PATH_class-native = "${QMAKE_MKSPEC_PATH_NATIVE}"
-QMAKE_MKSPEC_PATH_class-nativesdk = "${QMAKE_MKSPEC_PATH_NATIVE}"
-
 # hardcode linux, because that's what 0001-Add-linux-oe-g-platform.patch adds
 OE_QMAKE_PLATFORM_NATIVE = "linux-oe-g++"
 OE_QMAKE_PLATFORM = "linux-oe-g++"
@@ -40,7 +32,7 @@ EXTRA_OEMAKE = " \
 
 OE_QMAKESPEC = "${QMAKE_MKSPEC_PATH_NATIVE}/mkspecs/${OE_QMAKE_PLATFORM_NATIVE}"
 OE_XQMAKESPEC = "${QMAKE_MKSPEC_PATH}/mkspecs/${OE_QMAKE_PLATFORM}"
-OE_QMAKE_QMAKE = "${STAGING_BINDIR_NATIVE}/${QT_DIR_NAME}/qmake"
+OE_QMAKE_QMAKE = "${STAGING_BINDIR_NATIVE}${QT_DIR_NAME}/qmake"
 OE_QMAKE_COMPILER = "${CC}"
 OE_QMAKE_CC = "${CC}"
 OE_QMAKE_CFLAGS = "${CFLAGS}"
@@ -164,6 +156,17 @@ qmake5_base_do_configure () {
 
     CMD="${OE_QMAKE_QMAKE} -makefile -o Makefile ${OE_QMAKE_DEBUG_OUTPUT} ${OE_QMAKE_RECURSIVE} $QMAKE_VARSUBST_PRE $AFTER $PROFILES $QMAKE_VARSUBST_POST"
     ${OE_QMAKE_QMAKE} -makefile -o Makefile ${OE_QMAKE_DEBUG_OUTPUT} ${OE_QMAKE_RECURSIVE} $QMAKE_VARSUBST_PRE $AFTER $PROFILES $QMAKE_VARSUBST_POST || die "Error calling $CMD"
+}
+
+qmake5_base_native_do_install() {
+    oe_runmake install INSTALL_ROOT=${D}
+}
+
+qmake5_base_nativesdk_do_install() {
+    # Fix install paths for all
+    find -name "Makefile*" | xargs sed -i "s,(INSTALL_ROOT)${STAGING_DIR_HOST},(INSTALL_ROOT),g"
+
+    oe_runmake install INSTALL_ROOT=${D}
 }
 
 qmake5_base_do_install() {

@@ -1,11 +1,11 @@
 require qt5.inc
 require qt5-git.inc
 
-LICENSE = "GFDL-1.3 & BSD & (LGPL-2.1 & Digia-Qt-LGPL-Exception-1.1 | LGPL-3.0)"
+LICENSE = "GFDL-1.3 & BSD & (LGPL-2.1 & The-Qt-Company-Qt-LGPL-Exception-1.1 | LGPL-3.0)"
 LIC_FILES_CHKSUM = " \
-    file://LICENSE.LGPLv21;md5=d87ae0d200af76dca730d911474cbe5b \
-    file://LICENSE.LGPLv3;md5=ffcfac38a32c9ebdb8ff768fa1702478 \
-    file://LGPL_EXCEPTION.txt;md5=0145c4d1b6f96a661c2c139dfb268fb6 \
+    file://LICENSE.LGPLv21;md5=58a180e1cf84c756c29f782b3a485c29 \
+    file://LICENSE.LGPLv3;md5=c4fe8c6de4eef597feec6e90ed62e962 \
+    file://LGPL_EXCEPTION.txt;md5=9625233da42f9e0ce9d63651a9d97654 \
     file://LICENSE.FDL;md5=6d9f2a9af4c8b8c3c769f6cc1b6aaf7e \
 "
 
@@ -15,18 +15,17 @@ SRC_URI += "\
     file://0002-qlibraryinfo-allow-to-set-qt.conf-from-the-outside-u.patch \
     file://0003-Add-external-hostbindir-option.patch \
     file://0004-qt_module-Fix-pkgconfig-and-libtool-replacements.patch \
-    file://0005-Revert-eglfs-Print-the-chosen-config-in-debug-mode.patch \
-    file://0006-qeglplatformintegration-Undefine-CursorShape-from-X..patch \
-    file://0007-configure-bump-path-length-from-256-to-512-character.patch \
-    file://0008-eglfs-fix-egl-error-for-platforms-only-supporting-on.patch \
-    file://0009-QOpenGLPaintDevice-sub-area-support.patch \
-    file://0010-Make-Qt5GuiConfigExtras.cmake-find-gl-es-include-dir.patch \
+    file://0005-qeglplatformintegration-Undefine-CursorShape-from-X..patch \
+    file://0006-configure-bump-path-length-from-256-to-512-character.patch \
+    file://0007-QOpenGLPaintDevice-sub-area-support.patch \
+    file://0008-Fix-build-with-clang-3.7.patch \
 "
- 
-# specific for qtbase
+
+# specific for target qtbase
 SRC_URI += "\
-    file://0011-qmake-don-t-build-it-in-configure-but-allow-to-build.patch \
-    file://0012-Set-paths-for-target-properly.patch \
+    file://0009-qmake-don-t-build-it-in-configure-but-allow-to-build.patch \
+    file://0010-linux-oe-g-Invert-conditional-for-defining-QT_SOCKLE.patch \
+    file://0012-qeglplatformscreen.cpp-reorder-headers-to-fix-build-.patch \
 "
 
 DEPENDS += "qtbase-native"
@@ -82,6 +81,7 @@ PACKAGECONFIG[glib] = "-glib,-no-glib,glib-2.0"
 # fontdatabases/basic/qbasicfontdatabase.cpp will fail to build and system freetype
 # works only together with fontconfig
 PACKAGECONFIG[freetype] = "-system-freetype,-freetype,freetype"
+PACKAGECONFIG[harfbuzz] = "-system-harfbuzz,-no-harfbuzz,harfbuzz"
 PACKAGECONFIG[jpeg] = "-system-libjpeg,-no-libjpeg,jpeg"
 PACKAGECONFIG[libpng] = "-system-libpng,-no-libpng,libpng"
 PACKAGECONFIG[zlib] = "-system-zlib,-qt-zlib,zlib"
@@ -100,7 +100,7 @@ PACKAGECONFIG[sql-oci] = "-sql-oci,-no-sql-oci"
 PACKAGECONFIG[sql-tds] = "-sql-tds,-no-sql-tds"
 PACKAGECONFIG[sql-db2] = "-sql-db2,-no-sql-db2"
 PACKAGECONFIG[sql-sqlite2] = "-sql-sqlite2,-no-sql-sqlite2,sqlite"
-PACKAGECONFIG[sql-sqlite] = "-sql-sqlite,-no-sql-sqlite,sqlite3"
+PACKAGECONFIG[sql-sqlite] = "-sql-sqlite -system-sqlite,-no-sql-sqlite,sqlite3"
 PACKAGECONFIG[xcursor] = "-xcursor,-no-xcursor,libxcursor"
 PACKAGECONFIG[xinerama] = "-xinerama,-no-xinerama,libxinerama"
 PACKAGECONFIG[xinput] = "-xinput,-no-xinput"
@@ -132,6 +132,8 @@ PACKAGECONFIG[alsa] = "-alsa,-no-alsa,alsa-lib"
 PACKAGECONFIG[pulseaudio] = "-pulseaudio,-no-pulseaudio,pulseaudio"
 PACKAGECONFIG[nis] = "-nis,-no-nis"
 PACKAGECONFIG[widgets] = "-widgets,-no-widgets"
+PACKAGECONFIG[libproxy] = "-libproxy,-no-libproxy,libproxy"
+PACKAGECONFIG[libinput] = "-libinput,-no-libinput,libinput"
 
 QT_CONFIG_FLAGS += " \
     -shared \
@@ -154,7 +156,7 @@ EOF
 QMAKE_MKSPEC_PATH = "${B}"
 
 # another exception is that we need to run bin/qmake, because EffectivePaths are relative to qmake location
-OE_QMAKE_QMAKE_ORIG = "${STAGING_BINDIR_NATIVE}/${QT_DIR_NAME}/qmake"
+OE_QMAKE_QMAKE_ORIG = "${STAGING_BINDIR_NATIVE}${QT_DIR_NAME}/qmake"
 OE_QMAKE_QMAKE = "bin/qmake"
 
 # qtbase is exception, configure script is using our get(X)QEvalMakeConf and setBootstrapEvalVariable functions to read it from shell
@@ -172,7 +174,7 @@ do_configure() {
     # we need symlink in path relative to source, because
     # EffectivePaths:Prefix is relative to qmake location
     if [ ! -e ${B}/bin/qmake ]; then
-        mkdir ${B}/bin
+        mkdir -p ${B}/bin
         ln -sf ${OE_QMAKE_QMAKE_ORIG} ${B}/bin/qmake
     fi
 
@@ -196,8 +198,8 @@ do_configure() {
         -testsdir ${OE_QMAKE_PATH_TESTS} \
         -examplesdir ${OE_QMAKE_PATH_EXAMPLES} \
         -hostbindir ${OE_QMAKE_PATH_HOST_BINS} \
-        -hostdatadir ${OE_QMAKE_PATH_HOST_DATA} \
         -external-hostbindir ${OE_QMAKE_PATH_EXTERNAL_HOST_BINS} \
+        -hostdatadir ${OE_QMAKE_PATH_HOST_DATA} \
         -platform ${OE_QMAKESPEC} \
         -xplatform linux-oe-g++ \
         ${QT_CONFIG_FLAGS}
@@ -219,22 +221,28 @@ do_compile_append() {
 }
 
 do_install_append() {
-    install -m 0755 ${B}/qmake/bin/qmake ${D}/${bindir}/${QT_DIR_NAME}
+    install -m 0755 ${B}/qmake/bin/qmake ${D}/${bindir}${QT_DIR_NAME}
 
     ### Fix up the binaries to the right location
     ### TODO: FIX
     # install fonts manually if they are missing
     if [ ! -d ${D}/${OE_QMAKE_PATH_LIBS}/fonts ]; then
-        cp -a ${S}/lib/fonts ${D}/${OE_QMAKE_PATH_LIBS}
+        mkdir -p ${D}/${OE_QMAKE_PATH_LIBS}/fonts
+        cp -a ${S}/lib/fonts/* ${D}/${OE_QMAKE_PATH_LIBS}/fonts
         chown -R root:root ${D}/${OE_QMAKE_PATH_LIBS}/fonts
     fi
-
+    cp -a ${B}/lib/libqt* ${D}${libdir}
     # Remove example.pro file as it is useless
-    rm -f ${D}${OE_QMAKE_PATH_EXAMPLES}/examples.pro	
+    rm -f ${D}${OE_QMAKE_PATH_EXAMPLES}/examples.pro
 
     # Remove macx-ios-clang directory because /usr/lib/qt5/mkspecs/macx-ios-clang/rename_main.sh:#!/bin/bash
     # triggers QA Issue: qtbase-mkspecs requires /bin/bash, but no providers in its RDEPENDS [file-rdeps]
     rm -rf ${D}/${OE_QMAKE_PATH_QT_ARCHDATA}/mkspecs/macx-ios-clang
+
+    # Replace host paths with qmake built-in properties
+    sed -i -e 's| ${STAGING_DIR_NATIVE}${prefix_native}| $$[QT_HOST_PREFIX]|g' \
+        -e 's| ${STAGING_DIR_HOST}| $$[QT_SYSROOT]|g' \
+        ${D}/${OE_QMAKE_PATH_QT_ARCHDATA}/mkspecs/qconfig.pri
 }
 
 PACKAGES =. " \
@@ -264,9 +272,11 @@ FILES_${PN}-fonts-qpf            = "${OE_QMAKE_PATH_LIBS}/fonts/*.qpf*"
 FILES_${PN}-fonts                = "${OE_QMAKE_PATH_LIBS}/fonts/README \
                                     ${OE_QMAKE_PATH_LIBS}/fonts/fontdir"
 
+RRECOMMENDS_${PN}-plugins += "${@base_contains('DISTRO_FEATURES', 'x11', 'libx11-locale', '', d)}"
+
 sysroot_stage_dirs_append() {
     # $to is 2nd parameter passed to sysroot_stage_dir, e.g. ${SYSROOT_DESTDIR} passed from sysroot_stage_all
     rm -rf $to${OE_QMAKE_PATH_LIBS}/fonts
 }
 
-SRCREV = "2cb17c1fb903434274e58692c9f0df619affdab0"
+SRCREV = "2fde9f59eeab68ede92324e7613daf8be3eaf498"
