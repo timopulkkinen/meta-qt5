@@ -1,7 +1,7 @@
-From b0f96a829a7a04400f6a8b6cb14756db175c8e03 Mon Sep 17 00:00:00 2001
+From d480a725a36482f7a1df52c5c170961382a8e730 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Andreas=20M=C3=BCller?= <schnitzeltony@googlemail.com>
 Date: Fri, 17 Jan 2014 14:33:19 +0100
-Subject: [PATCH 2/3] assistant/help: fix linking of dependent libraries
+Subject: [PATCH 2/4] assistant/help: fix linking of dependent libraries
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -28,5 +28,5 @@ index 168d23d..a9c3b59 100644
 +
 +LIBS += -lQt5CLucene
 -- 
-2.4.2
+2.6.2
 

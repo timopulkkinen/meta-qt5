@@ -6,7 +6,8 @@ HOMEPAGE = "http://qt-project.org"
 LICENSE = "GFDL-1.3 & BSD & (LGPL-2.1 & The-Qt-Company-Qt-LGPL-Exception-1.1 | LGPL-3.0)"
 LIC_FILES_CHKSUM = " \
     file://LICENSE.LGPLv21;md5=58a180e1cf84c756c29f782b3a485c29 \
-    file://LICENSE.LGPLv3;md5=c4fe8c6de4eef597feec6e90ed62e962 \
+    file://LICENSE.LGPLv3;md5=b8c75190712063cde04e1f41b6fdad98 \
+    file://LICENSE.GPLv3;md5=40f9bf30e783ddc201497165dfb32afb \
     file://LGPL_EXCEPTION.txt;md5=9625233da42f9e0ce9d63651a9d97654 \
     file://LICENSE.FDL;md5=6d9f2a9af4c8b8c3c769f6cc1b6aaf7e \
 "
@@ -25,21 +26,15 @@ SRC_URI += "\
     file://0002-qlibraryinfo-allow-to-set-qt.conf-from-the-outside-u.patch \
     file://0003-Add-external-hostbindir-option.patch \
     file://0004-qt_module-Fix-pkgconfig-and-libtool-replacements.patch \
-    file://0005-qeglplatformintegration-Undefine-CursorShape-from-X..patch \
-    file://0006-configure-bump-path-length-from-256-to-512-character.patch \
-    file://0007-QOpenGLPaintDevice-sub-area-support.patch \
-    file://0008-Fix-build-with-clang-3.7.patch \
+    file://0005-configure-bump-path-length-from-256-to-512-character.patch \
+    file://0006-QOpenGLPaintDevice-sub-area-support.patch \
+    file://0007-linux-oe-g-Invert-conditional-for-defining-QT_SOCKLE.patch \
 "
 
 # common for qtbase-native and nativesdk-qtbase
 SRC_URI += " \
     file://0009-Always-build-uic.patch \
     file://0010-Add-external-hostbindir-option-for-native-sdk.patch \
-"
-
-# specific for nativesdk-qtbase
-SRC_URI += " \
-    file://0011-configure-preserve-built-qmake-and-swap-with-native-.patch \
 "
 
 # CMake's toolchain configuration of nativesdk-qtbase
@@ -149,10 +144,9 @@ OE_QMAKE_QMAKE = "bin/qmake"
 do_configure() {
     # we need symlink in path relative to source, because
     # EffectivePaths:Prefix is relative to qmake location
-    # Also, configure expects qmake-native to swap with real one
-    if [ ! -e ${B}/bin/qmake-native ]; then
-        mkdir ${B}/bin
-        ln -sf ${OE_QMAKE_QMAKE_ORIG} ${B}/bin/qmake-native
+    if [ ! -e ${B}/bin/qmake ]; then
+        mkdir -p ${B}/bin
+        ln -sf ${OE_QMAKE_QMAKE_ORIG} ${B}/bin/qmake
     fi
 
     ${S}/configure -v \
@@ -223,9 +217,7 @@ do_install() {
 
     oe_runmake install INSTALL_ROOT=${D}
 
-    # replace the native qmake installed above with nativesdk version
-    rm -rf ${D}${OE_QMAKE_PATH_HOST_BINS}/qmake
-    install -m 755 ${B}/bin/qmake-real ${D}${OE_QMAKE_PATH_HOST_BINS}/qmake
+    install -m 755 ${B}/bin/qmake-target ${D}${OE_QMAKE_PATH_HOST_BINS}/qmake
 
     # for modules which are still using syncqt and call qtPrepareTool(QMAKE_SYNCQT, syncqt)
     # e.g. qt3d, qtwayland
@@ -278,4 +270,4 @@ fakeroot do_generate_qt_environment_file() {
 
 addtask generate_qt_environment_file after do_install before do_package
 
-SRCREV = "2fde9f59eeab68ede92324e7613daf8be3eaf498"
+SRCREV = "f7f4dde80e13ff1c05a9399297ffb746ab505e62"

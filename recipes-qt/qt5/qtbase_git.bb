@@ -4,7 +4,8 @@ require qt5-git.inc
 LICENSE = "GFDL-1.3 & BSD & (LGPL-2.1 & The-Qt-Company-Qt-LGPL-Exception-1.1 | LGPL-3.0)"
 LIC_FILES_CHKSUM = " \
     file://LICENSE.LGPLv21;md5=58a180e1cf84c756c29f782b3a485c29 \
-    file://LICENSE.LGPLv3;md5=c4fe8c6de4eef597feec6e90ed62e962 \
+    file://LICENSE.LGPLv3;md5=b8c75190712063cde04e1f41b6fdad98 \
+    file://LICENSE.GPLv3;md5=40f9bf30e783ddc201497165dfb32afb \
     file://LGPL_EXCEPTION.txt;md5=9625233da42f9e0ce9d63651a9d97654 \
     file://LICENSE.FDL;md5=6d9f2a9af4c8b8c3c769f6cc1b6aaf7e \
 "
@@ -15,17 +16,10 @@ SRC_URI += "\
     file://0002-qlibraryinfo-allow-to-set-qt.conf-from-the-outside-u.patch \
     file://0003-Add-external-hostbindir-option.patch \
     file://0004-qt_module-Fix-pkgconfig-and-libtool-replacements.patch \
-    file://0005-qeglplatformintegration-Undefine-CursorShape-from-X..patch \
-    file://0006-configure-bump-path-length-from-256-to-512-character.patch \
-    file://0007-QOpenGLPaintDevice-sub-area-support.patch \
-    file://0008-Fix-build-with-clang-3.7.patch \
-"
-
-# specific for target qtbase
-SRC_URI += "\
-    file://0009-qmake-don-t-build-it-in-configure-but-allow-to-build.patch \
-    file://0010-linux-oe-g-Invert-conditional-for-defining-QT_SOCKLE.patch \
-    file://0012-qeglplatformscreen.cpp-reorder-headers-to-fix-build-.patch \
+    file://0005-configure-bump-path-length-from-256-to-512-character.patch \
+    file://0006-QOpenGLPaintDevice-sub-area-support.patch \
+    file://0007-linux-oe-g-Invert-conditional-for-defining-QT_SOCKLE.patch \
+    file://0008-configure-paths-for-target-qmake-properly.patch \
 "
 
 DEPENDS += "qtbase-native"
@@ -42,7 +36,7 @@ RDEPENDS_${PN}-tools += "perl"
 
 PACKAGECONFIG_GL ?= "${@base_contains('DISTRO_FEATURES', 'opengl', 'gl', '', d)}"
 PACKAGECONFIG_FB ?= "${@base_contains('DISTRO_FEATURES', 'directfb', 'directfb', '', d)}"
-PACKAGECONFIG_X11 ?= "${@base_contains('DISTRO_FEATURES', 'x11', 'xcb xvideo xsync xshape xrender xrandr xfixes xinput2 xinput xinerama xcursor gtkstyle xkb', '', d)}"
+PACKAGECONFIG_X11 ?= "${@base_contains('DISTRO_FEATURES', 'x11', 'xcb xvideo xsync xshape xrender xrandr xfixes xinput2 xinput xinerama xcursor glib gtkstyle xkb', '', d)}"
 PACKAGECONFIG_FONTS ?= ""
 PACKAGECONFIG_SYSTEM ?= "jpeg libpng zlib"
 PACKAGECONFIG_MULTIMEDIA ?= "${@base_contains('DISTRO_FEATURES', 'pulseaudio', 'pulseaudio', '', d)}"
@@ -114,6 +108,7 @@ PACKAGECONFIG[xvideo] = "-xvideo,-no-xvideo"
 PACKAGECONFIG[openvg] = "-openvg,-no-openvg"
 PACKAGECONFIG[iconv] = "-iconv,-no-iconv,virtual/libiconv"
 PACKAGECONFIG[xkb] = "-xkb,-no-xkb -no-xkbcommon,libxkbcommon"
+PACKAGECONFIG[xkbcommon-evdev] = "-xkbcommon-evdev,-no-xkbcommon-evdev,libxkbcommon"
 PACKAGECONFIG[evdev] = "-evdev,-no-evdev"
 PACKAGECONFIG[mtdev] = "-mtdev,-no-mtdev,mtdev"
 # depends on glib
@@ -207,31 +202,18 @@ do_configure() {
     qmake5_base_do_configure
 }
 
-do_compile_append() {
-    # copy corelib/3rdparty/qmake sources required by qmake -> ${B}
-    cp -ra ${S}/src/corelib ${B}/src
-    cp -ra ${S}/src/3rdparty ${B}/src
-    cp -ra ${S}/qmake ${B}
-    cp ${S}/.qmake.conf ${B}/qmake
-    cd ${B}/qmake
-    # align qt5 tools source path to ${S}
-    sed -i 's:\.\./tools:${S}/tools:g' qmake.pro
-    ../${OE_QMAKE_QMAKE}
-    oe_runmake CC="${CC}" CXX="${CXX}"
-}
-
 do_install_append() {
-    install -m 0755 ${B}/qmake/bin/qmake ${D}/${bindir}${QT_DIR_NAME}
+    install -m 0755 ${B}/bin/qmake-target ${D}/${bindir}${QT_DIR_NAME}/qmake
 
     ### Fix up the binaries to the right location
     ### TODO: FIX
     # install fonts manually if they are missing
-    if [ ! -d ${D}/${OE_QMAKE_PATH_LIBS}/fonts ]; then
-        mkdir -p ${D}/${OE_QMAKE_PATH_LIBS}/fonts
-        cp -a ${S}/lib/fonts/* ${D}/${OE_QMAKE_PATH_LIBS}/fonts
-        chown -R root:root ${D}/${OE_QMAKE_PATH_LIBS}/fonts
+    if [ ! -d ${D}/${OE_QMAKE_PATH_QT_FONTS} ]; then
+        mkdir -p ${D}/${OE_QMAKE_PATH_QT_FONTS}
+        cp -a ${S}/lib/fonts/* ${D}/${OE_QMAKE_PATH_QT_FONTS}
+        chown -R root:root ${D}/${OE_QMAKE_PATH_QT_FONTS}
     fi
-    cp -a ${B}/lib/libqt* ${D}${libdir}
+    install -m 0644 ${B}/lib/libqt* ${D}${libdir}
     # Remove example.pro file as it is useless
     rm -f ${D}${OE_QMAKE_PATH_EXAMPLES}/examples.pro
 
@@ -240,9 +222,9 @@ do_install_append() {
     rm -rf ${D}/${OE_QMAKE_PATH_QT_ARCHDATA}/mkspecs/macx-ios-clang
 
     # Replace host paths with qmake built-in properties
-    sed -i -e 's| ${STAGING_DIR_NATIVE}${prefix_native}| $$[QT_HOST_PREFIX]|g' \
-        -e 's| ${STAGING_DIR_HOST}| $$[QT_SYSROOT]|g' \
-        ${D}/${OE_QMAKE_PATH_QT_ARCHDATA}/mkspecs/qconfig.pri
+#    sed -i -e 's| ${STAGING_DIR_NATIVE}${prefix_native}| $$[QT_HOST_PREFIX]|g' \
+#        -e 's| ${STAGING_DIR_HOST}| $$[QT_SYSROOT]|g' \
+#        ${D}/${OE_QMAKE_PATH_QT_ARCHDATA}/mkspecs/qconfig.pri
 }
 
 PACKAGES =. " \
@@ -264,19 +246,19 @@ RRECOMMENDS_${PN}-fonts = " \
 
 ALLOW_EMPTY_${PN}-fonts = "1"
 
-FILES_${PN}-fonts-ttf-vera       = "${OE_QMAKE_PATH_LIBS}/fonts/Vera*.ttf"
-FILES_${PN}-fonts-ttf-dejavu     = "${OE_QMAKE_PATH_LIBS}/fonts/DejaVu*.ttf"
-FILES_${PN}-fonts-pfa            = "${OE_QMAKE_PATH_LIBS}/fonts/*.pfa"
-FILES_${PN}-fonts-pfb            = "${OE_QMAKE_PATH_LIBS}/fonts/*.pfb"
-FILES_${PN}-fonts-qpf            = "${OE_QMAKE_PATH_LIBS}/fonts/*.qpf*"
-FILES_${PN}-fonts                = "${OE_QMAKE_PATH_LIBS}/fonts/README \
-                                    ${OE_QMAKE_PATH_LIBS}/fonts/fontdir"
+FILES_${PN}-fonts-ttf-vera       = "${OE_QMAKE_PATH_QT_FONTS}/Vera*.ttf"
+FILES_${PN}-fonts-ttf-dejavu     = "${OE_QMAKE_PATH_QT_FONTS}/DejaVu*.ttf"
+FILES_${PN}-fonts-pfa            = "${OE_QMAKE_PATH_QT_FONTS}/*.pfa"
+FILES_${PN}-fonts-pfb            = "${OE_QMAKE_PATH_QT_FONTS}/*.pfb"
+FILES_${PN}-fonts-qpf            = "${OE_QMAKE_PATH_QT_FONTS}/*.qpf*"
+FILES_${PN}-fonts                = "${OE_QMAKE_PATH_QT_FONTS}/README \
+                                    ${OE_QMAKE_PATH_QT_FONTS}/fontdir"
 
 RRECOMMENDS_${PN}-plugins += "${@base_contains('DISTRO_FEATURES', 'x11', 'libx11-locale', '', d)}"
 
 sysroot_stage_dirs_append() {
     # $to is 2nd parameter passed to sysroot_stage_dir, e.g. ${SYSROOT_DESTDIR} passed from sysroot_stage_all
-    rm -rf $to${OE_QMAKE_PATH_LIBS}/fonts
+    rm -rf $to${OE_QMAKE_PATH_QT_FONTS}
 }
 
-SRCREV = "2fde9f59eeab68ede92324e7613daf8be3eaf498"
+SRCREV = "f7f4dde80e13ff1c05a9399297ffb746ab505e62"

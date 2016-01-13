@@ -4,16 +4,43 @@ LICENSE = "LGPL-3.0 & BSD"
 LIC_FILES_CHKSUM = " \
     file://src/core/browser_context_qt.cpp;md5=5fe719c44250955a5d5f8fb15fc8b1da;beginline=1;endline=35 \
     file://src/3rdparty/chromium/LICENSE;md5=537e0b52077bf0a616d0a0c8a79bc9d5 \
-    file://LICENSE.LGPLv3;md5=e6a600fd5e1d9cbde2d983680233ad02 \
+    file://LICENSE.LGPLv3;md5=3dcffeed712d3c916f9a2d9135703aff \
+    file://LICENSE.GPLv3;md5=40f9bf30e783ddc201497165dfb32afb \
+    file://LICENSE.GPLv2;md5=05832301944453ec79e40ba3c3cfceec \
 "
 
 DEPENDS += " \
     ninja-native \
     qtwebchannel \
     qtbase qtdeclarative qtxmlpatterns qtquickcontrols \
+    qtlocation \
     libdrm fontconfig pixman openssl pango cairo icu pciutils \
     libcap \
 "
+
+# when qtbase is built with xcb enabled (default with x11 in DISTRO_FEATURES),
+# qtwebengine will have additional dependencies:
+# contains(QT_CONFIG, xcb): REQUIRED_PACKAGES += libdrm xcomposite xcursor xi xrandr xscrnsaver xtst
+# xscreensaver isn't covered in qtbase DEPENDS
+DEPENDS += "${@base_contains('DISTRO_FEATURES', 'x11', 'libxscrnsaver', '', d)}"
+
+DEPENDS += "yasm-native"
+EXTRA_QMAKEVARS_PRE += "GYP_CONFIG+=use_system_yasm"
+
+# To use system ffmpeg you need to enable also libwebp, opus, vpx											    
+# Only depenedencies available in oe-core are enabled by default
+PACKAGECONFIG ??= "libwebp flac libevent libxslt speex"
+PACKAGECONFIG[opus] = "WEBENGINE_CONFIG+=use_system_opus,,libopus"
+PACKAGECONFIG[icu] = "WEBENGINE_CONFIG+=use_system_icu,,icu"
+PACKAGECONFIG[ffmpeg] = "WEBENGINE_CONFIG+=use_system_ffmpeg,,libav"
+PACKAGECONFIG[libwebp] = "WEBENGINE_CONFIG+=use_system_libwebp,,libwebp"
+PACKAGECONFIG[flac] = "WEBENGINE_CONFIG+=use_system_flac,,flac"
+PACKAGECONFIG[libevent] = "WEBENGINE_CONFIG+=use_system_libevent,,libevent"
+PACKAGECONFIG[libxslt] = "WEBENGINE_CONFIG+=use_system_libxslt,,libxslt"
+PACKAGECONFIG[speex] = "WEBENGINE_CONFIG+=use_system_speex,,speex"
+PACKAGECONFIG[vpx] = "WEBENGINE_CONFIG+=use_system_vpx,,libvpx"
+
+EXTRA_QMAKEVARS_PRE += "${EXTRA_OECONF}"
 
 COMPATIBLE_MACHINE = "(-)"
 COMPATIBLE_MACHINE_x86 = "(.*)"
@@ -26,15 +53,16 @@ inherit gettext
 inherit pythonnative
 inherit perlnative
 
+# we don't want gettext.bbclass to append --enable-nls
+def gettext_oeconf(d):
+    return ""
+
 require qt5.inc
 require qt5-git.inc
 
 # To avoid trouble start with not separated build directory
 SEPB = "${S}"
 B = "${SEPB}"
-
-# Project ERROR: Missing CMake tests. Either create tests in tests/auto/cmake, or disable cmake config file creation with CONFIG-=create_cmake.
-EXTRA_QMAKEVARS_POST += "CONFIG-=create_cmake"
 
 export NINJA_PATH="${STAGING_BINDIR_NATIVE}/ninja"
 
@@ -46,6 +74,10 @@ do_configure() {
     export CC_host="gcc"
     export CXX_host="g++"
     export QMAKE_MAKE_ARGS="${EXTRA_OEMAKE}"
+    export QMAKE_CACHE_EVAL="${EXTRA_OECONF}"
+
+    # Disable autodetection from sysroot:
+    sed -i 's/packagesExist([^)]*vpx[^)]*):/false:/g; s/config_srtp:/false:/g; s/config_snappy:/false:/g; s/packagesExist(nss):/false:/g; s/packagesExist(minizip, zlib):/false:/g; s/packagesExist(libwebp,libwebpdemux):/false:/g; s/packagesExist(libxml-2.0,libxslt):/false:/g; s/^ *packagesExist($$package):/false:/g' ${S}/tools/qmake/mkspecs/features/configure.prf
 
     # qmake can't find the OE_QMAKE_* variables on it's own so directly passing them as
     # arguments here
@@ -54,7 +86,7 @@ do_configure() {
         QMAKE_LINK="${OE_QMAKE_LINK}" \
         QMAKE_CFLAGS="${OE_QMAKE_CFLAGS}" \
         QMAKE_CXXFLAGS="${OE_QMAKE_CXXFLAGS}" \
-        QMAKE_AR="${OE_QMAKE_AR}" \
+        QMAKE_AR="${OE_QMAKE_AR} cqs" \
         -after ${EXTRA_QMAKEVARS_POST}
 }
 
@@ -72,21 +104,19 @@ RDEPENDS_${PN}-examples += " \
     qtdeclarative-qmlplugins \
 "
 
-QT_MODULE_BRANCH_CHROMIUM = "40.0.2214-based"
+QT_MODULE_BRANCH_CHROMIUM = "45-based"
 
 SRC_URI += " \
     ${QT_GIT}/qtwebengine-chromium.git;name=chromium;branch=${QT_MODULE_BRANCH_CHROMIUM};destsuffix=git/src/3rdparty \
     file://0001-functions.prf-Don-t-match-QMAKE_EXT_CPP-or-QMAKE_EXT.patch \
     file://0002-functions.prf-Make-sure-we-only-use-the-file-name-to.patch \
     file://0003-functions.prf-allow-build-for-linux-oe-g-platform.patch \
-    file://0004-Generate-usable-qmake_extras.gypi.patch \
     file://0001-chromium-base.gypi-include-atomicops_internals_x86_g.patch \
-    file://0002-chromium-third_party-boringssl-Demand-for-newer-POSI.patch \
 "
-SRCREV_qtwebengine = "c6573119006014ff7bc0efb2da16ea35d302a1ec"
-SRCREV_chromium = "41a1a031cd69e187a9608359ffe56652dcaaa6c5"
+SRCREV_qtwebengine = "40ef43e0d69c4a86c9430b7f264d2cde6340ee0f"
+SRCREV_chromium = "ec5b3304fc266dfdec7666b8b73d57a3971ea35f"
 SRCREV = "${SRCREV_qtwebengine}"
 
-SRCREV_FORMAT = "qtwebengine"
+SRCREV_FORMAT = "qtwebengine_chromium"
 
 S = "${WORKDIR}/git"

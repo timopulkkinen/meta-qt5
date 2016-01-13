@@ -19,22 +19,16 @@ inherit qmake5
 DEPENDS = "qtbase qtscript qtwebkit qtxmlpatterns qtx11extras qtdeclarative qttools qttools-native qtsvg qtquick1"
 
 SRC_URI = " \
-    http://download.qt.io/official_releases/qtcreator/3.3/${PV}/qt-creator-opensource-src-${PV}.tar.gz \
+    http://download.qt.io/official_releases/qtcreator/3.5/${PV}/qt-creator-opensource-src-${PV}.tar.gz \
     file://0001-Fix-Allow-qt-creator-to-build-on-arm-aarch32-and-aar.patch \
     file://qtcreator.desktop.in \
 "
-SRC_URI[md5sum] = "54cb5918c6852731612672a22627dd08"
-SRC_URI[sha256sum] = "afefb73a05cdc36cdfb8a760c2b39eb6c366a22ef47c7d365d446092dd1d5331"
+SRC_URI[md5sum] = "77aef7df837eba07c7ce6037ee504c05"
+SRC_URI[sha256sum] = "5925ac818a08be919094e0f28fb4c5d8896765e0975d54d353e4c50f13d63e65"
 
 S = "${WORKDIR}/qt-creator-opensource-src-${PV}"
 
 EXTRA_QMAKEVARS_PRE += "IDE_LIBRARY_BASENAME=${baselib}${QT_DIR_NAME}"
-
-do_configure_prepend() {
-    # causes gcc infinite loop with 4.9.x for arm targets similar to
-    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61033
-    export DO_NOT_BUILD_QMLDESIGNER=1
-}
 
 do_configure_append() {
     # Find native tools
@@ -67,6 +61,7 @@ FILES_${PN} += " \
 FILES_${PN}-dbg += " \
     ${libdir}${QT_DIR_NAME}/qtcreator/.debug \
     ${libdir}${QT_DIR_NAME}/qtcreator/plugins/.debug \
+    ${libdir}${QT_DIR_NAME}/qtcreator/plugins/qmldesigner/.debug \
     ${libdir}${QT_DIR_NAME}/qtcreator/plugins/qbs/plugins/.debug \
 "
 
