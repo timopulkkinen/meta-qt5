@@ -202,7 +202,7 @@ do_configure() {
 }
 
 do_install_append() {
-    install -m 0755 ${B}/bin/qmake-target ${D}/${bindir}${QT_DIR_NAME}/qmake
+    install -m 0755 ${B}/bin/qmake ${D}/${bindir}${QT_DIR_NAME}/qmake
 
     ### Fix up the binaries to the right location
     ### TODO: FIX
