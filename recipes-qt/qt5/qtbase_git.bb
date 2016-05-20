@@ -199,7 +199,7 @@ do_configure() {
 }
 
 do_install_append() {
-    install -m 0755 ${B}/bin/qmake-target ${D}/${bindir}${QT_DIR_NAME}/qmake
+    install -m 0755 ${B}/bin/qmake ${D}/${bindir}${QT_DIR_NAME}/qmake
 
     # Remove example.pro file as it is useless
     rm -f ${D}${OE_QMAKE_PATH_EXAMPLES}/examples.pro
