@@ -15,7 +15,7 @@ DEPENDS += "qtbase"
 
 SRC_URI += " \
     file://0001-qmltestexample-fix-link.patch \
-    file://0001-qquickviewcomparison-fix-QCoreApplication-has-not-be.patch \
+    file://0002-qquickviewcomparison-fix-QCoreApplication-has-not-be.patch \
 "
 
 EXTRA_OEMAKE += "QMAKE_SYNCQT=${STAGING_BINDIR_NATIVE}${QT_DIR_NAME}/syncqt"
@@ -32,8 +32,8 @@ do_configure_prepend() {
     echo "QT_TOOL.syncqt.binary = \"${STAGING_BINDIR_NATIVE}${QT_DIR_NAME}/syncqt\"" > ${B}/.qmake.cache
 }
 
-EXTRA_QMAKEVARS_PRE += "${@base_contains('PACKAGECONFIG', 'qtxmlpatterns', 'CONFIG+=OE_QTXMLPATTERNS_ENABLED', '', d)}"
+EXTRA_QMAKEVARS_PRE += "${@bb.utils.contains('PACKAGECONFIG', 'qtxmlpatterns', 'CONFIG+=OE_QTXMLPATTERNS_ENABLED', '', d)}"
 
-SRCREV = "dc558b69f083c89aa8c02952e5f167405939a61a"
+SRCREV = "31ef2e858c2a0835c040b3199c9557f0f6c66808"
 
 BBCLASSEXTEND =+ "native nativesdk"

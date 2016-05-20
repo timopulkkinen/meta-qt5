@@ -28,9 +28,9 @@ PACKAGECONFIG_class-nativesdk ??= "linguistonly"
 PACKAGECONFIG[linguistonly] = ""
 PACKAGECONFIG[qtwebkit] = ",,qtwebkit"
 
-EXTRA_QMAKEVARS_PRE += "${@base_contains('PACKAGECONFIG', 'qtwebkit', '', 'CONFIG+=noqtwebkit', d)}"
-EXTRA_QMAKEVARS_PRE += "${@base_contains('PACKAGECONFIG', 'linguistonly', 'CONFIG+=linguistonly', '', d)}"
+EXTRA_QMAKEVARS_PRE += "${@bb.utils.contains('PACKAGECONFIG', 'qtwebkit', '', 'CONFIG+=noqtwebkit', d)}"
+EXTRA_QMAKEVARS_PRE += "${@bb.utils.contains('PACKAGECONFIG', 'linguistonly', 'CONFIG+=linguistonly', '', d)}"
 
-SRCREV = "9904992dc4eb9a5958fcfbac238374ff38498143"
+SRCREV = "d36d2c3026cae67c119384f47cb2680552c81aaf"
 
 BBCLASSEXTEND = "native nativesdk"

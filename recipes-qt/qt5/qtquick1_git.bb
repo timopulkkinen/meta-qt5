@@ -16,6 +16,8 @@ LIC_FILES_CHKSUM = " \
 DEPENDS += "qtscript qtsvg qtxmlpatterns"
 # qttools
 
+SRC_URI += "file://0001-qdeclarativetextinput-update-to-match-QWidgetLineCon.patch"
+
 PACKAGECONFIG ??= "webkit"
 PACKAGECONFIG[webkit] = "CONFIG+=enable-webkit,CONFIG-=enable-webkit,qtwebkit"
 
@@ -23,4 +25,4 @@ do_configure_prepend() {
     sed -i 's#^qtHaveModule(webkitwidgets):#enable-webkit:qtHaveModule(webkitwidgets):#g' ${S}/src/imports/imports.pro
 }
 
-SRCREV = "dcc5e5c01c28b227f0e5e5e4976a9d26e8a45295"
+SRCREV = "5e3bd5cb28e7af95b289a617ca2f7a8892498225"
