@@ -9,7 +9,7 @@ LIC_FILES_CHKSUM = " \
     file://Source/JavaScriptCore/parser/Parser.h;endline=21;md5=bd69f72183a7af673863f057576e21ee \
 "
 
-DEPENDS += "qtbase qtdeclarative icu ruby-native sqlite3 glib-2.0 libxslt"
+DEPENDS += "qtbase qtdeclarative icu ruby-native sqlite3 glib-2.0 libxslt gperf-native"
 
 # qemuarm build fails with:
 # | {standard input}: Assembler messages:
@@ -64,6 +64,9 @@ do_configure_prepend() {
     sed -e 's/\s\(config_fontconfig: \)/ OE_FONTCONFIG_ENABLED:\1/' -i ${S}/Tools/qmake/mkspecs/features/features.prf
 }
 
+# Forcibly enable ICU, so qtbase doesn't need it.
+EXTRA_QMAKEVARS_PRE += "QT_CONFIG+=icu"
+
 # qtwebkit gets terribly big when linking with all debug info, disable by default
 QTWEBKIT_DEBUG = "QMAKE_CFLAGS+=-g0 QMAKE_CXXFLAGS+=-g0"
 EXTRA_QMAKEVARS_PRE += "${QTWEBKIT_DEBUG}"
@@ -83,4 +86,4 @@ PACKAGES_remove = "${PN}-examples-dev ${PN}-examples-staticdev ${PN}-examples-db
 RUBY_SYS = "${@ '${BUILD_SYS}'.replace('i486', 'i386').replace('i586', 'i386').replace('i686', 'i386') }"
 export RUBYLIB="${STAGING_DATADIR_NATIVE}/rubygems:${STAGING_LIBDIR_NATIVE}/ruby:${STAGING_LIBDIR_NATIVE}/ruby/${RUBY_SYS}"
 
-SRCREV = "2e8517924b70a778463e463873eb3d8d0b623eed"
+SRCREV = "74ac5b0f3489f9a08d083b6c9607c9d5c2d4afd2"
